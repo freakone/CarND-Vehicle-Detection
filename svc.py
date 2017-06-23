@@ -54,7 +54,8 @@ class SVC():
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True):
         features = []
-        for img in imgs:            
+        for img in imgs:  
+            img = mpimg.imread(img)          
             features.append(self.single_img_features(img, color_space, spatial_size, hist_bins, 
                             orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat))
         return features

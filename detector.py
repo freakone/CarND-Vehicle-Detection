@@ -135,8 +135,11 @@ class Detector():
         return img
 
     def overlay_detection(self, image):
-        windows = self.slide_window(image, x_start_stop=[None, None], y_start_stop=self.svc.params['y_start_stop'], 
-                    xy_window=(80, 80), xy_overlap=(0.5, 0.5))
+        windows = []
+
+        for scale in self.svc.params['scales']:
+            windows.extend(self.slide_window(image, x_start_stop=[None, None], y_start_stop=self.svc.params['y_start_stop'], 
+                        xy_window=self.svc.params['window_size'], xy_overlap=(0.5, 0.5)))
 
         hot_windows = self.search_windows(image, windows, self.svc.svc, self.svc.X_scaler, color_space=self.svc.params['color_space'], 
                                 spatial_size=self.svc.params['spatial_size'], hist_bins=self.svc.params['hist_bins'], 
@@ -144,11 +147,15 @@ class Detector():
                                 cell_per_block=self.svc.params['cell_per_block'], 
                                 hog_channel=self.svc.params['hog_channel'], spatial_feat=self.svc.params['spatial_feat'], 
                                 hist_feat=self.svc.params['hist_feat'], hog_feat=self.svc.params['hog_feat'])                       
-
+        # return self.draw_boxes(image, hot_windows, color=(0, 0, 255), thick=6)    
+        
         heat = np.zeros_like(image[:,:,0]).astype(np.float)
-        heat = self.add_heat(heat,hot_windows)            
-        heat = self.apply_threshold(heat, 1)
+        heat = self.add_heat(heat,hot_windows)   
+
+             
+        heat = self.apply_threshold(heat, self.svc.params['heat_threshold'])
         heatmap = np.clip(heat, 0, 255)
+        # return heatmap  
         labels = label(heatmap)
         draw_img = self.draw_labeled_bboxes(np.copy(image), labels)
 

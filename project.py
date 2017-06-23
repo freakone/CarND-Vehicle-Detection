@@ -2,28 +2,34 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from svc import SVC
 from detector import Detector
+from moviepy.editor import VideoFileClip
 
-params = {  'color_space': 'RGB', # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-            'orient': 9,  # HOG orientations
-            'pix_per_cell': 16, # HOG pixels per cell
-            'cell_per_block': 4, # HOG cells per block
+params = {  'color_space': 'YUV', # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+            'orient': 11,  # HOG orientations
+            'pix_per_cell': 12, # HOG pixels per cell
+            'cell_per_block': 2, # HOG cells per block
             'hog_channel': 'ALL',# Can be 0, 1, 2, or "ALL"
             'spatial_size': (16, 16), # Spatial binning dimensions
             'hist_bins': 32,  # Number of histogram bins
-            'spatial_feat': True, # Spatial features on or off
+            'spatial_feat': False, # Spatial features on or off
             'hist_feat': True, # Histogram features on or off
             'hog_feat': True, # HOG features on or off
-            'y_start_stop': [400, 700] # Min and max in y to search in slide_window()
+            'y_start_stop': [400, 700], # Min and max in y to search in slide_window()
+            'heat_threshold': 4,
+            'window_size': (80, 80),
+            'scales': [1, 1.5, 2, 2.5]
+
          }
 
 svc = SVC(params)
 detector = Detector(svc)
 
-image = mpimg.imread('test_images/test1.jpg')
-image = detector.overlay_detection(image)
+clip1 = VideoFileClip("test_video.mp4") 
+white_clip = clip1.fl_image(detector.overlay_detection)
+white_clip.write_videofile('output_images/test_video.mp4', audio=False)
 
-# window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)                    
-
-plt.imshow(image)
-plt.show()
+# image = mpimg.imread('test_images/vlc2.jpg')
+# image = detector.overlay_detection(image)
+# plt.imshow(image)
+# plt.show()
 
