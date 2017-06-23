@@ -22,7 +22,6 @@ detector = Detector(svc)
 image = mpimg.imread('test_images/test1.jpg')
 image = detector.overlay_detection(image)
 
-
 # window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)                    
 
 plt.imshow(image)

@@ -54,41 +54,9 @@ class SVC():
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True):
         features = []
-        for file in imgs:
-            file_features = []
-            image = mpimg.imread(file)
-            if color_space != 'RGB':
-                if color_space == 'HSV':
-                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-                elif color_space == 'LUV':
-                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
-                elif color_space == 'HLS':
-                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-                elif color_space == 'YUV':
-                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
-                elif color_space == 'YCrCb':
-                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
-            else: feature_image = np.copy(image)      
-
-            if spatial_feat == True:
-                spatial_features = self.bin_spatial(feature_image, size=spatial_size)
-                file_features.append(spatial_features)
-            if hist_feat == True:
-                hist_features = self.color_hist(feature_image, nbins=hist_bins)
-                file_features.append(hist_features)
-            if hog_feat == True:
-                if hog_channel == 'ALL':
-                    hog_features = []
-                    for channel in range(feature_image.shape[2]):
-                        hog_features.append(self.get_hog_features(feature_image[:,:,channel], 
-                                            orient, pix_per_cell, cell_per_block, 
-                                            vis=False, feature_vec=True))
-                    hog_features = np.ravel(hog_features)        
-                else:
-                    hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
-                                pix_per_cell, cell_per_block, vis=False, feature_vec=True)
-                file_features.append(hog_features)
-            features.append(np.concatenate(file_features))
+        for img in imgs:            
+            features.append(self.single_img_features(img, color_space, spatial_size, hist_bins, 
+                            orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat))
         return features
 
 
