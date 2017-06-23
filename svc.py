@@ -1,0 +1,194 @@
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+import glob
+import time
+from sklearn.svm import LinearSVC
+from sklearn.preprocessing import StandardScaler
+from skimage.feature import hog
+from scipy.ndimage.measurements import label
+from sklearn.cross_validation import train_test_split
+import pickle
+import matplotlib.image as mpimg
+import numpy as np
+import cv2
+import os.path
+
+class SVC():
+    def __init__(self, params):
+        self.params = params
+        self.filename = "svc.p"
+        self.load_svc()
+        
+    def get_hog_features(self, img, orient, pix_per_cell, cell_per_block, 
+                            vis=False, feature_vec=True):
+        if vis == True:
+            features, hog_image = hog(img, orientations=orient, 
+                                    pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                    cells_per_block=(cell_per_block, cell_per_block), 
+                                    transform_sqrt=True, 
+                                    visualise=vis, feature_vector=feature_vec)
+            return features, hog_image
+        else:      
+            features = hog(img, orientations=orient, 
+                        pixels_per_cell=(pix_per_cell, pix_per_cell),
+                        cells_per_block=(cell_per_block, cell_per_block), 
+                        transform_sqrt=True, 
+                        visualise=vis, feature_vector=feature_vec)
+            return features
+
+    def bin_spatial(self, img, size=(32, 32)):        
+        features = cv2.resize(img, size).ravel() 
+        return features
+
+    def color_hist(self, img, nbins=32, bins_range=(0, 256)):
+        channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
+        channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
+        channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
+        hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+        return hist_features
+
+    def extract_features(self, imgs, color_space='RGB', spatial_size=(32, 32),
+                        hist_bins=32, orient=9, 
+                        pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                        spatial_feat=True, hist_feat=True, hog_feat=True):
+        features = []
+        for file in imgs:
+            file_features = []
+            image = mpimg.imread(file)
+            if color_space != 'RGB':
+                if color_space == 'HSV':
+                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+                elif color_space == 'LUV':
+                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+                elif color_space == 'HLS':
+                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+                elif color_space == 'YUV':
+                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+                elif color_space == 'YCrCb':
+                    feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+            else: feature_image = np.copy(image)      
+
+            if spatial_feat == True:
+                spatial_features = self.bin_spatial(feature_image, size=spatial_size)
+                file_features.append(spatial_features)
+            if hist_feat == True:
+                hist_features = self.color_hist(feature_image, nbins=hist_bins)
+                file_features.append(hist_features)
+            if hog_feat == True:
+                if hog_channel == 'ALL':
+                    hog_features = []
+                    for channel in range(feature_image.shape[2]):
+                        hog_features.append(self.get_hog_features(feature_image[:,:,channel], 
+                                            orient, pix_per_cell, cell_per_block, 
+                                            vis=False, feature_vec=True))
+                    hog_features = np.ravel(hog_features)        
+                else:
+                    hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                                pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+                file_features.append(hog_features)
+            features.append(np.concatenate(file_features))
+        return features
+
+
+    def single_img_features(self, img, color_space='RGB', spatial_size=(32, 32),
+                        hist_bins=32, orient=9, 
+                        pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                        spatial_feat=True, hist_feat=True, hog_feat=True):    
+        img_features = []
+        if color_space != 'RGB':
+            if color_space == 'HSV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+            elif color_space == 'LUV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+            elif color_space == 'HLS':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+            elif color_space == 'YUV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+            elif color_space == 'YCrCb':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+        else: feature_image = np.copy(img)      
+        #3) Compute spatial features if flag is set
+        if spatial_feat == True:
+            spatial_features = self.bin_spatial(feature_image, size=spatial_size)
+            #4) Append features to list
+            img_features.append(spatial_features)
+        #5) Compute histogram features if flag is set
+        if hist_feat == True:
+            hist_features = self.color_hist(feature_image, nbins=hist_bins)
+            #6) Append features to list
+            img_features.append(hist_features)
+        #7) Compute HOG features if flag is set
+        if hog_feat == True:
+            if hog_channel == 'ALL':
+                hog_features = []
+                for channel in range(feature_image.shape[2]):
+                    hog_features.extend(self.get_hog_features(feature_image[:,:,channel], 
+                                        orient, pix_per_cell, cell_per_block, 
+                                        vis=False, feature_vec=True))      
+            else:
+                hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                            pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+            #8) Append features to list
+            img_features.append(hog_features)
+
+        #9) Return concatenated array of features
+        return np.concatenate(img_features)
+
+    def load_svc(self):
+        if os.path.exists(self.filename):
+            with open(self.filename, 'rb') as f:
+                (self.svc, self.X_scaler) = pickle.load(f)
+        else:
+            self.train()
+
+    def train(self):
+        # Read in cars and notcars
+        cars = glob.glob('vehicles_smallset/cars1/*.jpeg')
+        notcars = glob.glob('non-vehicles_smallset/notcars1/*.jpeg')
+
+        car_features = self.extract_features(cars, color_space=self.params['color_space'], 
+                                            spatial_size=self.params['spatial_size'], hist_bins=self.params['hist_bins'], 
+                                            orient=self.params['orient'], pix_per_cell=self.params['pix_per_cell'], 
+                                            cell_per_block=self.params['cell_per_block'], 
+                                            hog_channel=self.params['hog_channel'], spatial_feat=self.params['spatial_feat'], 
+                                            hist_feat=self.params['hist_feat'], hog_feat=self.params['hog_feat'])
+        notcar_features = self.extract_features(notcars, color_space=self.params['color_space'], 
+                                                spatial_size=self.params['spatial_size'], hist_bins=self.params['hist_bins'], 
+                                                orient=self.params['orient'], pix_per_cell=self.params['pix_per_cell'], 
+                                                cell_per_block=self.params['cell_per_block'], 
+                                                hog_channel=self.params['hog_channel'], spatial_feat=self.params['spatial_feat'], 
+                                                hist_feat=self.params['hist_feat'], hog_feat=self.params['hog_feat'])
+                
+        X = np.vstack((car_features, notcar_features)).astype(np.float64)                        
+        # Fit a per-column scaler
+        self.X_scaler = StandardScaler().fit(X)
+        # Apply the scaler to X
+        scaled_X = self.X_scaler.transform(X)
+
+        # Define the labels vector
+        y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+
+        # Split up data into randomized training and test sets
+        rand_state = np.random.randint(0, 100)
+        X_train, X_test, y_train, y_test = train_test_split(
+            scaled_X, y, test_size=0.2, random_state=rand_state)
+
+        print('Using:',self.params['orient'],'orientations',self.params['pix_per_cell'],
+            'pixels per cell and', self.params['cell_per_block'],'cells per block')
+        print('Feature vector length:', len(X_train[0]))
+        # Use a linear SVC 
+        self.svc = LinearSVC()
+        # Check the training time for the SVC
+        t=time.time()
+        self.svc.fit(X_train, y_train)
+        t2 = time.time()
+        print(round(t2-t, 2), 'Seconds to train SVC...')
+        # Check the score of the SVC
+        print('Test Accuracy of SVC = ', round(self.svc.score(X_test, y_test), 4))
+        # Check the prediction time for a single sample
+        t=time.time()
+
+        with open(self.filename, 'wb') as f:
+            pickle.dump((self.svc, self.X_scaler), f)
