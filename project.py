@@ -19,9 +19,9 @@ svc = SVC(params)
 detector = Detector(svc)
 
 
-# clip1 = VideoFileClip("project_video.mp4") 
-# white_clip = clip1.fl_image(detector.overlay_detection)
-# white_clip.write_videofile('output_images/project_video.mp4', audio=False)
+clip1 = VideoFileClip("project_video.mp4") 
+white_clip = clip1.fl_image(detector.overlay_detection)
+white_clip.write_videofile('output_images/project_video.mp4', audio=False)
 
 
 # clip1 = VideoFileClip("test_video.mp4") 
@@ -44,7 +44,7 @@ detector = Detector(svc)
 # fig.show()
 # input()
 
-image = mpimg.imread('test_images/test1.jpg')
-raw_boxes, heatmap, draw_img = detector.overlay_detection(image, debug=True)
-plt.imshow(raw_boxes)
-plt.show()
+# image = mpimg.imread('test_images/vlc.jpg')
+# raw_boxes, heatmap, draw_img = detector.overlay_detection(image, debug=True)
+# plt.imshow(draw_img)
+# plt.show()
