@@ -47,6 +47,16 @@ class Detector():
         # Return the image
         return img
 
+    def draw_boxes(self, img, bboxes, color=(0, 0, 255), thick=6):
+        # Make a copy of the image
+        imcopy = np.copy(img)
+        # Iterate through the bounding boxes
+        for bbox in bboxes:
+            # Draw a rectangle given bbox coordinates
+            cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+        # Return the image copy with boxes drawn
+        return imcopy
+
     def find_cars(self, img, ystart_stop, color, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, hist_bins):
         
         draw_img = np.copy(img)
@@ -82,6 +92,7 @@ class Detector():
         hog2 = self.svc.get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
         hog3 = self.svc.get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
         
+        detections = []
         for xb in range(nxsteps):
             for yb in range(nysteps):
                 ypos = yb*cells_per_step
@@ -103,40 +114,30 @@ class Detector():
 
                 # Scale features and make a prediction
                 test_features = X_scaler.transform(np.hstack((hist_features, hog_features)).reshape(1, -1))    
-                #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))    
                 test_prediction = svc.predict(test_features)
                 
                 if test_prediction == 1:
                     xbox_left = np.int(xleft*scale)
                     ytop_draw = np.int(ytop*scale)
                     win_draw = np.int(window*scale)
-                    cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
-                        
-        return draw_img
+                    rect_box = (xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)
+                    # cv2.rectangle(draw_img,rect_box,(0,0,255),6) 
+                    detections.append(rect_box)    
+                    
+        return detections
 
     def overlay_detection(self, image):
         windows = []
+        boxes = []
+        for scale in self.svc.params['scales']:
+            boxes.extend(self.find_cars(image, self.svc.params['y_start_stop'], self.svc.params['color_space'], scale, self.svc.svc, 
+                        self.svc.X_scaler, self.svc.params['orient'], self.svc.params['pix_per_cell'], self.svc.params['cell_per_block'], 
+                        self.svc.params['hist_bins']))
 
-        # for scale in self.svc.params['scales']:
-        #     windows.extend(self.slide_window(image, x_start_stop=[None, None], y_start_stop=self.svc.params['y_start_stop'], 
-        #                 xy_window=[int(scale * x) for x in self.svc.params['window_size']], xy_overlap=(0.5, 0.5)))
-
-        # hot_windows = self.search_windows(image, windows, self.svc.svc, self.svc.X_scaler, color_space=self.svc.params['color_space'], 
-        #                         spatial_size=self.svc.params['spatial_size'], hist_bins=self.svc.params['hist_bins'], 
-        #                         orient=self.svc.params['orient'], pix_per_cell=self.svc.params['pix_per_cell'], 
-        #                         cell_per_block=self.svc.params['cell_per_block'], 
-        #                         hog_channel=self.svc.params['hog_channel'], spatial_feat=self.svc.params['spatial_feat'], 
-        #                         hist_feat=self.svc.params['hist_feat'], hog_feat=self.svc.params['hog_feat'])                       
-        # return self.draw_boxes(image, hot_windows, color=(0, 0, 255), thick=6)    
-        out_img = self.find_cars(image, self.svc.params['y_start_stop'], self.svc.params['color_space'], 2, self.svc.svc, 
-                    self.svc.X_scaler, self.svc.params['orient'], self.svc.params['pix_per_cell'], self.svc.params['cell_per_block'], 
-                    self.svc.params['hist_bins'])
-
-        return out_img
+        # return self.draw_boxes(image, boxes, color=(0, 0, 255), thick=6)   
 
         heat = np.zeros_like(image[:,:,0]).astype(np.float)
-        heat = self.add_heat(heat,hot_windows)   
-
+        heat = self.add_heat(heat,boxes)   
              
         heat = self.apply_threshold(heat, self.svc.params['heat_threshold'])
         heatmap = np.clip(heat, 0, 255)

@@ -12,16 +12,15 @@ params = {  'color_space': 'YCrCb', # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
             'hist_bins': 16,  # Number of histogram bins
             'y_start_stop': [400, 700], # Min and max in y to search in slide_window()
             'heat_threshold': 4,
-            'scales': [1, 1.3, 1.5, 2]
-
+            'scales': [1.2, 1.5, 1.8, 2, 2.5]
          }
 
 svc = SVC(params)
 detector = Detector(svc)
 
-clip1 = VideoFileClip("test_video.mp4") 
-white_clip = clip1.fl_image(detector.overlay_detection)
-white_clip.write_videofile('output_images/test_video.mp4', audio=False)
+# clip1 = VideoFileClip("test_video.mp4") 
+# white_clip = clip1.fl_image(detector.overlay_detection)
+# white_clip.write_videofile('output_images/test_video.mp4', audio=False)
 
 image = mpimg.imread('test_images/test1.jpg')
 image = detector.overlay_detection(image)
