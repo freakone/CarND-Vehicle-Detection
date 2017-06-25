@@ -18,7 +18,7 @@ The goals / steps of this project are the following:
 
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
 ### Writeup / README
@@ -101,5 +101,4 @@ Here's an example result showing the heatmap:
 
 I haven't implemented any averaging of the windows, so they jump between the frames. It would be required to have it.
 
-The second issue that could be handled is detection of the vehicles on the lanes that are separated. 
-
+The second issue that could be handled is detection of the vehicles on the lanes that are separated by the road barriers.
