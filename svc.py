@@ -51,15 +51,15 @@ class SVC():
         hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
         return hist_features
 
-    def extract_features(self, imgs, color_space='RGB', spatial_size=(32, 32),
+    def extract_features(self, imgs, color_space='RGB',
                         hist_bins=32, orient=9, 
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         hist_feat=True, hog_feat=True):
         features = []
         for img in imgs:  
             img = mpimg.imread(img)          
-            features.append(self.single_img_features(img, color_space, spatial_size, hist_bins, 
-                            orient, pix_per_cell, cell_per_block, hog_channel, spatial_feat, hist_feat, hog_feat))
+            features.append(self.single_img_features(img, color_space, hist_bins, 
+                            orient, pix_per_cell, cell_per_block, hog_channel))
         return features
 
     def convert_color(self, img, color_space='YCrCb'):
@@ -75,7 +75,7 @@ class SVC():
             return cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
 
 
-    def single_img_features(self, img, color_space='RGB', spatial_size=(32, 32),
+    def single_img_features(self, img, color_space='RGB',
                         hist_bins=32, orient=9, 
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         hist_feat=True, hog_feat=True):    
@@ -83,11 +83,7 @@ class SVC():
         if color_space != 'RGB':
             feature_image = self.convert_color(img, color_space=color_space)
         else: feature_image = np.copy(img)      
-        #3) Compute spatial features if flag is set
-        if spatial_feat == True:
-            spatial_features = self.bin_spatial(feature_image, size=spatial_size)
-            #4) Append features to list
-            # img_features.append(spatial_features)
+
         #5) Compute histogram features if flag is set
         if hist_feat == True:
             hist_features = self.color_hist(feature_image, nbins=hist_bins)
@@ -102,7 +98,7 @@ class SVC():
                                         orient, pix_per_cell, cell_per_block, 
                                         vis=False, feature_vec=True))      
             else:
-                hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                hog_features = self.get_hog_features(feature_image[:,:,hog_channel], orient, 
                             pix_per_cell, cell_per_block, vis=False, feature_vec=True)
             #8) Append features to list
             img_features.append(hog_features)
@@ -123,12 +119,12 @@ class SVC():
         notcars = glob.glob('non-vehicles/*/*.png')
 
         car_features = self.extract_features(cars, color_space=self.params['color_space'], 
-                                            spatial_size=self.params['spatial_size'], hist_bins=self.params['hist_bins'], 
+                                            hist_bins=self.params['hist_bins'], 
                                             orient=self.params['orient'], pix_per_cell=self.params['pix_per_cell'], 
                                             cell_per_block=self.params['cell_per_block'], 
                                             hog_channel=self.params['hog_channel'])
         notcar_features = self.extract_features(notcars, color_space=self.params['color_space'], 
-                                                spatial_size=self.params['spatial_size'], hist_bins=self.params['hist_bins'], 
+                                                hist_bins=self.params['hist_bins'], 
                                                 orient=self.params['orient'], pix_per_cell=self.params['pix_per_cell'], 
                                                 cell_per_block=self.params['cell_per_block'], 
                                                 hog_channel=self.params['hog_channel'])

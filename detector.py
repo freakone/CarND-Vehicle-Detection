@@ -57,7 +57,7 @@ class Detector():
         # Return the image copy with boxes drawn
         return imcopy
 
-    def find_cars(self, img, ystart_stop, color, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, hist_bins):
+    def find_cars(self, img, ystart_stop, color, scale, svc, X_scaler, orient, pix_per_cell, cell_per_block, hist_bins, channel):
         
         draw_img = np.copy(img)
         img = img.astype(np.float32)/255
@@ -70,14 +70,10 @@ class Detector():
         if scale != 1:
             imshape = ctrans_tosearch.shape
             ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1]/scale), np.int(imshape[0]/scale)))
-            
-        ch1 = ctrans_tosearch[:,:,0]
-        ch2 = ctrans_tosearch[:,:,1]
-        ch3 = ctrans_tosearch[:,:,2]
-
+    
         # Define blocks and steps as above
-        nxblocks = (ch1.shape[1] // pix_per_cell) - cell_per_block + 1
-        nyblocks = (ch1.shape[0] // pix_per_cell) - cell_per_block + 1 
+        nxblocks = (ctrans_tosearch[:,:,0].shape[1] // pix_per_cell) - cell_per_block + 1
+        nyblocks = (ctrans_tosearch[:,:,0].shape[0] // pix_per_cell) - cell_per_block + 1 
         nfeat_per_block = orient*cell_per_block**2
         
         # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
@@ -88,9 +84,13 @@ class Detector():
         nysteps = (nyblocks - nblocks_per_window) // cells_per_step
         
         # Compute individual channel HOG features for the entire image
-        hog1 = self.svc.get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog2 = self.svc.get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog3 = self.svc.get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
+
+        hogs = []
+        if channel == 'ALL':
+            for ch in range(ctrans_tosearch.shape[2]):
+                hogs.append(self.svc.get_hog_features(ctrans_tosearch[:,:,ch], orient, pix_per_cell, cell_per_block, feature_vec=False))      
+        else:
+            hogs.append(self.svc.get_hog_features(ctrans_tosearch[:,:,channel], orient, pix_per_cell, cell_per_block, feature_vec=False))      
         
         detections = []
         for xb in range(nxsteps):
@@ -98,10 +98,10 @@ class Detector():
                 ypos = yb*cells_per_step
                 xpos = xb*cells_per_step
                 # Extract HOG for this patch
-                hog_feat1 = hog1[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel() 
-                hog_feat2 = hog2[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel() 
-                hog_feat3 = hog3[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel() 
-                hog_features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
+
+                hog_features = []
+                for h in hogs:
+                    hog_features.extend(h[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel())
 
                 xleft = xpos*pix_per_cell
                 ytop = ypos*pix_per_cell
@@ -126,23 +126,25 @@ class Detector():
                     
         return detections
 
-    def overlay_detection(self, image):
+    def overlay_detection(self, image, debug=False):
         windows = []
         boxes = []
         for scale in self.svc.params['scales']:
             boxes.extend(self.find_cars(image, self.svc.params['y_start_stop'], self.svc.params['color_space'], scale, self.svc.svc, 
                         self.svc.X_scaler, self.svc.params['orient'], self.svc.params['pix_per_cell'], self.svc.params['cell_per_block'], 
-                        self.svc.params['hist_bins']))
-
-        # return self.draw_boxes(image, boxes, color=(0, 0, 255), thick=6)   
+                        self.svc.params['hist_bins'], self.svc.params['hog_channel']))
 
         heat = np.zeros_like(image[:,:,0]).astype(np.float)
         heat = self.add_heat(heat,boxes)   
              
         heat = self.apply_threshold(heat, self.svc.params['heat_threshold'])
         heatmap = np.clip(heat, 0, 255)
-        # return heatmap  
+        
         labels = label(heatmap)
         draw_img = self.draw_labeled_bboxes(np.copy(image), labels)
+
+        if debug:
+            raw_boxes = self.draw_boxes(image, boxes, color=(0, 0, 255), thick=6)   
+            return raw_boxes, heatmap, draw_img
 
         return draw_img
