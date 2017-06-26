@@ -5,21 +5,22 @@ from detector import Detector
 from moviepy.editor import VideoFileClip
 
 params = {  'color_space': 'YCrCb', # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-            'orient': 9,  # HOG orientations
+            'orient': 12,  # HOG orientations
             'pix_per_cell': 8, # HOG pixels per cell
             'cell_per_block': 2, # HOG cells per block
             'hog_channel': 'ALL',# Can be 0, 1, 2, or "ALL"
             'hist_bins': 32,  # Number of histogram bins
             'y_start_stop': [400, 700], # Min and max in y to search in slide_window()
-            'heat_threshold': 2,
-            'scales': [1, 1.5]
+            'heat_threshold': 40,
+            'scales': [0.9, 1.6],
+            'heat_window': 20
          }
 
 svc = SVC(params)
-detector = Detector(svc)
+detector = Detector(svc, params['heat_window'])
 
 
-clip1 = VideoFileClip("project_video.mp4") 
+clip1 = VideoFileClip("project_video.mp4")#.subclip(21,25)
 white_clip = clip1.fl_image(detector.overlay_detection)
 white_clip.write_videofile('output_images/project_video.mp4', audio=False)
 
@@ -44,7 +45,7 @@ white_clip.write_videofile('output_images/project_video.mp4', audio=False)
 # fig.show()
 # input()
 
-# image = mpimg.imread('test_images/vlc.jpg')
+# image = mpimg.imread('test_images/vlc2.jpg')
 # raw_boxes, heatmap, draw_img = detector.overlay_detection(image, debug=True)
-# plt.imshow(draw_img)
+# plt.imshow(raw_boxes)
 # plt.show()

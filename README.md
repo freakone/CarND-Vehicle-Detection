@@ -45,7 +45,7 @@ After some tuning I ended up with perticular parameters:
 | Feature | Value |
 |---------|-------|
 | Color space | YCrCb |
-| Orientations | 8 |
+| Orientations | 12 |
 | Pixels per cell | 8x8 |
 | Cells per block | 2x2 |
 | Color channels  | ALL |
@@ -66,7 +66,7 @@ The sliding window implementation was done in `detector.py` file, lines `60-127`
 
 Scales switching was done in the same file (lines `132-135`).
 
-I ended up with four scales: 1 and 1.5
+I ended up with two scales: 0.9 and 1.6
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
@@ -83,7 +83,7 @@ Here's a [link to my video result](./output_images/project_video.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected. The heatmap threshold was settled to 2.
+I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected. There is an averaging of the measurement, alghoritm is taking in consideration 20 last frames. The heatmap threshold was settled to 40.
 
 Here's an example result showing the heatmap:
 
@@ -99,6 +99,4 @@ Here's an example result showing the heatmap:
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-I haven't implemented any averaging of the windows, so they jump between the frames. It would be required to have it.
-
-The second issue that could be handled is detection of the vehicles on the lanes that are separated by the road barriers.
+An issue is that could be handled is detection of the vehicles on the lanes that are separated by the road barriers.

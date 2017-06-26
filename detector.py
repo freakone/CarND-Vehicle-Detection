@@ -11,10 +11,12 @@ from scipy.ndimage.measurements import label
 from sklearn.cross_validation import train_test_split
 import pickle
 import os.path
+from collections import deque
 
 class Detector():
-    def __init__(self, svc):
+    def __init__(self, svc, window):
         self.svc = svc
+        self.heatmaps = deque(maxlen = window) 
 
     def add_heat(self, heatmap, bbox_list):
         # Iterate through list of bboxes
@@ -135,9 +137,12 @@ class Detector():
                         self.svc.params['hist_bins'], self.svc.params['hog_channel']))
 
         heat = np.zeros_like(image[:,:,0]).astype(np.float)
-        heat = self.add_heat(heat,boxes)   
-             
-        heat = self.apply_threshold(heat, self.svc.params['heat_threshold'])
+        heat = self.add_heat(heat,boxes)  
+
+        self.heatmaps.append(heat)        
+        combined = np.sum(self.heatmaps, axis = 0)
+
+        heat = self.apply_threshold(combined, self.svc.params['heat_threshold'])
         heatmap = np.clip(heat, 0, 255)
         
         labels = label(heatmap)
